@@ -1,3 +1,4 @@
+TiempoExterior,Temperatura,Humedad,Viento,Jugar
 soleado,caluroso,alta,falso,no
 soleado,caluroso,alta,verdad,no
 nublado,caluroso,alta,falso,si
@@ -12,4 +13,3 @@ soleado,templado,normal,verdad,si
 nublado,templado,alta,verdad,si
 nublado,caluroso,normal,falso,si
 lluvioso,templado,alta,verdad,no
-
