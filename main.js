@@ -47,7 +47,7 @@ function csvToArray(str, delimiter = ",") {
 window.addEventListener("load", () => {
     // Load demo data tree
     const demoModel = id3(demoData, 'Jugar', demoAttributes);
-    // drawGraph(demoModel, 'canvas');
+    drawGraph(demoModel, 'canvas');
 
     document.getElementById("startSimulationForm").addEventListener("submit", async (e) => {
         e.preventDefault();
