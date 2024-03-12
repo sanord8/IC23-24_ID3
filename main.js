@@ -44,24 +44,28 @@ function csvToArray(str, delimiter = ",") {
     return arr;
 }
 
-window.addEventListener("load", () => {
+async function loadFiles(e) {
+    e.preventDefault();
+
+    const attributeFile = document.getElementById("attributeFile").files[0];
+    const valuesFile = document.getElementById("valuesFile").files[0];
+
+    let attributes = await attributeFile.text();
+    let values = await valuesFile.text();
+
+    attributes = attributes.replace("\r\n", "").split(",");
+    values = csvToArray(values);
+
+    let model = id3(_(values), attributes[attributes.length - 1], attributes.slice(0, attributes.length - 1));
+    drawGraph(model, 'canvas');
+}
+
+function init() {
     // Load demo data tree
     const demoModel = id3(demoData, 'Jugar', demoAttributes);
     drawGraph(demoModel, 'canvas');
 
-    document.getElementById("startSimulationForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
+    document.getElementById("startSimulationForm").addEventListener("submit", loadFiles);
+}
 
-        const attributeFile = document.getElementById("attributeFile").files[0];
-        const valuesFile = document.getElementById("valuesFile").files[0];
-
-        let attributes = await attributeFile.text();
-        let values = await valuesFile.text();
-
-        attributes = attributes.replace("\r\n", "").split(",");
-        values = csvToArray(values);
-
-        let model = id3(_(values), attributes[attributes.length - 1], attributes.slice(0, attributes.length - 1));
-        drawGraph(model, 'canvas');
-    });
-});
+window.addEventListener("load", init);

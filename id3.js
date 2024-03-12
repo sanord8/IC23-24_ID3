@@ -2,7 +2,13 @@
 
 
 //main algorithm and prediction functions
-
+/**
+ * Generates a decision tree using the ID3 algorithm.
+ * @param {Array<Object>} data - The dataset.
+ * @param {string} target - The target variable to predict.
+ * @param {Array<string>} features - The list of feature variables.
+ * @returns {Object} - The decision tree node.
+ */
 let id3 = function (data, target, features) {
     let targets = _.unique(data.pluck(target));
     if (targets.length == 1) {

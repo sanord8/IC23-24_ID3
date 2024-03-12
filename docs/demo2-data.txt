@@ -1,0 +1,10 @@
+hairLength,weight,age,sex
+short,fat,middle,male
+long,fat,middle,female
+short,thin,young,male
+long,thin,young,female
+short,thin,young,female
+short,fat,old,male
+long,fat,middle,female
+long,fat,middle,male
+long,fat,middle,male
