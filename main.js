@@ -1,4 +1,4 @@
-const demoData = [
+const demoData = _([
     { TiempoExterior: "soleado", Temperatura: "caluroso", Humedad: "alta", Viento: "falso", Jugar: "no" },
     { TiempoExterior: "soleado", Temperatura: "caluroso", Humedad: "alta", Viento: "verdad", Jugar: "no" },
     { TiempoExterior: "nublado", Temperatura: "caluroso", Humedad: "alta", Viento: "falso", Jugar: "si" },
@@ -13,63 +13,55 @@ const demoData = [
     { TiempoExterior: "nublado", Temperatura: "templado", Humedad: "alta", Viento: "verdad", Jugar: "si" },
     { TiempoExterior: "nublado", Temperatura: "caluroso", Humedad: "normal", Viento: "falso", Jugar: "si" },
     { TiempoExterior: "lluvioso", Temperatura: "templado", Humedad: "alta", Viento: "verdad", Jugar: "no" }
-];
+]);
 
-function paintDecisionTree(decisionTree) {
-    document.getElementById('displayTree').innerHTML = treeToHtml(decisionTree.root);
+const demoAttributes = ['TiempoExterior', 'Temperatura', 'caluroso', 'Humedad', 'Viento'];
+
+function csvToArray(str, delimiter = ",") {
+    // slice from start of text to the first \n index
+    // use split to create an array from string by delimiter
+    const headers = str.slice(0, str.indexOf("\n")).replace(/\r/g, "").split(delimiter);
+
+    // slice from \n index + 1 to the end of the text
+    // use split to create an array of each csv value row
+    const rows = str.slice(str.indexOf("\n") + 1).replace(/\r/g, "").split("\n");
+
+    // Map the rows
+    // split values from each row into an array
+    // use headers.reduce to create an object
+    // object properties derived from headers:values
+    // the object passed as an element of the array
+    const arr = rows.map(function (row) {
+        const values = row.split(delimiter);
+        const el = headers.reduce(function (object, header, index) {
+            object[header] = values[index];
+            return object;
+        }, {});
+        return el;
+    });
+
+    // return the array
+    return arr;
 }
 
-// Recursive (DFS) function for displaying inner structure of decision tree
-function treeToHtml(tree) {
-    // only leafs containing category
-    if (tree.category) {
-        return `<ul>
-                    <li>
-                        <a href="#">
-                            <b>${tree.category}</b>
-                        </a>
-                    </li>
-                </ul>`;
-    }
-
-    let x = `<ul>
-                <li>`
-    return ['<ul>',
-        '<li>',
-        '<a href="#">',
-        '<b>', tree.attribute, ' ', tree.predicateName, ' ', tree.pivot, ' ?</b>',
-        '</a>',
-        '<ul>',
-        '<li>',
-        '<a href="#">yes</a>',
-        treeToHtml(tree.match),
-        '</li>',
-        '<li>',
-        '<a href="#">no</a>',
-        treeToHtml(tree.notMatch),
-        '</li>',
-        '</ul>',
-        '</li>',
-        '</ul>'].join('');
-}
-
-(function init() {
+window.addEventListener("load", () => {
     // Load demo data tree
-    const config = {
-        trainingSet: demoData,
-        categoryAttr: 'Jugar',
-        ignoredAttributes: []
-    };
-    const decisionTree = new dt.DecisionTree(config);
-    paintDecisionTree(decisionTree);
+    const demoModel = id3(demoData, 'Jugar', demoAttributes);
+    // drawGraph(demoModel, 'canvas');
 
-    document.getElementById("defaultSimulationForm").addEventListener("submit", (e) => {
+    document.getElementById("startSimulationForm").addEventListener("submit", async (e) => {
         e.preventDefault();
 
         const attributeFile = document.getElementById("attributeFile").files[0];
         const valuesFile = document.getElementById("valuesFile").files[0];
 
-        console.log(attributeFile);
-        console.log(valuesFile);
+        let attributes = await attributeFile.text();
+        let values = await valuesFile.text();
+
+        attributes = attributes.replace("\r\n", "").split(",");
+        values = csvToArray(values);
+
+        let model = id3(_(values), attributes[attributes.length - 1], attributes.slice(0, attributes.length - 1));
+        drawGraph(model, 'canvas');
     });
-})();
+});

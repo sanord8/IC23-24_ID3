@@ -1,293 +1,159 @@
-let dt = (function () {
+//ID3 Decision Tree Algorithm
 
-    /**
-     * Creates an instance of DecisionTree
-     *
-     * @constructor
-     * @param builder - contains training set and
-     *                  some configuration parameters
-     */
-    function DecisionTree(builder) {
-        this.root = buildDecisionTree({
-            trainingSet: builder.trainingSet,
-            ignoredAttributes: arrayToHashSet(builder.ignoredAttributes),
-            categoryAttr: builder.categoryAttr || 'category',
-            minItemsCount: builder.minItemsCount || 1,
-            entropyThrehold: builder.entropyThrehold || 0.01,
-            maxTreeDepth: builder.maxTreeDepth || 70
+
+//main algorithm and prediction functions
+
+let id3 = function (data, target, features) {
+    let targets = _.unique(data.pluck(target));
+    if (targets.length == 1) {
+        return { type: "result", val: targets[0], name: targets[0], alias: targets[0] + randomTag() };
+    }
+    if (features.length == 0) {
+        let topTarget = mostCommon(data.pluck(target));
+        return { type: "result", val: topTarget, name: topTarget, alias: topTarget + randomTag() };
+    }
+    let bestFeature = maxGain(data, target, features);
+    let remainingFeatures = _.without(features, bestFeature);
+    let possibleValues = _.unique(data.pluck(bestFeature));
+    let node = { name: bestFeature, alias: bestFeature + randomTag() };
+    node.type = "feature";
+    node.vals = _.map(possibleValues, function (v) {
+        let _newS = _(data.filter(function (x) { return x[bestFeature] == v }));
+        let child_node = { name: v, alias: v + randomTag(), type: "feature_value" };
+        child_node.child = id3(_newS, target, remainingFeatures);
+        return child_node;
+
+    });
+    return node;
+}
+
+let predict = function (id3Model, sample) {
+    let root = id3Model;
+    while (root.type != "result") {
+        let attr = root.name;
+        let sampleVal = sample[attr];
+        let childNode = _.detect(root.vals, function (x) { return x.name == sampleVal });
+        root = childNode.child;
+    }
+    return root.val;
+}
+
+
+
+//necessary math functions
+
+let entropy = function (vals) {
+    let uniqueVals = _.unique(vals);
+    let probs = uniqueVals.map(function (x) { return prob(x, vals) });
+    let logVals = probs.map(function (p) { return -p * log2(p) });
+    return logVals.reduce(function (a, b) { return a + b }, 0);
+}
+
+let gain = function (data, target, feature) {
+    let attrVals = _.unique(data.pluck(feature));
+    let setEntropy = entropy(data.pluck(target));
+    let setSize = data.size();
+    let entropies = attrVals.map(function (n) {
+        let subset = data.filter(function (x) { return x[feature] === n });
+        return (subset.length / setSize) * entropy(_.pluck(subset, target));
+    });
+    let sumOfEntropies = entropies.reduce(function (a, b) { return a + b }, 0);
+    return setEntropy - sumOfEntropies;
+}
+
+let maxGain = function (data, target, features) {
+    return _.max(features, function (e) { return gain(data, target, e) });
+}
+
+let prob = function (val, vals) {
+    let instances = _.filter(vals, function (x) { return x === val }).length;
+    let total = vals.length;
+    return instances / total;
+}
+
+let log2 = function (n) {
+    return Math.log(n) / Math.log(2);
+}
+
+
+let mostCommon = function (l) {
+    return _.sortBy(l, function (a) {
+        return count(a, l);
+    }).reverse()[0];
+}
+
+let count = function (a, l) {
+    return _.filter(l, function (b) { return b === a }).length
+}
+
+let randomTag = function () {
+    return "_r" + Math.round(Math.random() * 1000000).toString();
+}
+
+//Display logic
+
+let drawGraph = function (id3Model, divId) {
+    let g = new Array();
+    g = addEdges(id3Model, g).reverse();
+    window.g = g;
+    let data = google.visualization.arrayToDataTable(g.concat(g));
+    let chart = new google.visualization.OrgChart(document.getElementById(divId));
+    google.visualization.events.addListener(chart, 'ready', function () {
+        _.each($('.google-visualization-orgchart-node'), function (x) {
+            let oldVal = $(x).html();
+            if (oldVal) {
+                let cleanVal = oldVal.replace(/_r[0-9]+/, '');
+                $(x).html(cleanVal);
+            }
         });
+    });
+    chart.draw(data, { allowHtml: true });
+
+}
+
+let addEdges = function (node, g) {
+    if (node.type == 'feature') {
+        _.each(node.vals, function (m) {
+            g.push([m.alias, node.alias, '']);
+            g = addEdges(m, g);
+        });
+        return g;
     }
+    if (node.type == 'feature_value') {
 
-    /**
-     * Transforming array to object with such attributes 
-     * as elements of array (afterwards it can be used as HashSet)
-     */
-    function arrayToHashSet(array) {
-        let hashSet = {};
-        if (array) {
-            for (let i in array) {
-                let attr = array[i];
-                hashSet[attr] = true;
-            }
+        g.push([node.child.alias, node.alias, '']);
+        if (node.child.type != 'result') {
+            g = addEdges(node.child, g);
         }
-        return hashSet;
+        return g;
     }
+    return g;
+}
 
-    /**
-     * Calculating how many objects have the same 
-     * values of specific attribute.
-     *
-     * @param items - array of objects
-     *
-     * @param attr  - variable with name of attribute, 
-     *                which embedded in each object
-     */
-    function countUniqueValues(items, attr) {
-        let counter = {};
 
-        // detecting different values of attribute
-        for (let i = items.length - 1; i >= 0; i--) {
-            // items[i][attr] - value of attribute
-            counter[items[i][attr]] = 0;
+let renderSamples = function (samples, $el, model, target, features) {
+    _.each(samples, function (s) {
+        let features_fordataample = _.map(features, function (x) { return s[x] });
+        $el.append("<tr><td>" + features_fordataample.join('</td><td>') + "</td><td><b>" + predict(model, s) + "</b></td><td>actual: " + s[target] + "</td></tr>");
+    })
+}
+
+let renderTrainingData = function (_training, $el, target, features) {
+    _training.each(function (s) {
+        $el.append("<tr><td>" + _.map(features, function (x) { return s[x] }).join('</td><td>') + "</td><td>" + s[target] + "</td></tr>");
+    })
+}
+
+let calcError = function (samples, model, target) {
+    let total = 0;
+    let correct = 0;
+    _.each(samples, function (s) {
+        total++;
+        let pred = predict(model, s);
+        let actual = s[target];
+        if (pred == actual) {
+            correct++;
         }
-
-        // counting number of occurrences of each of values
-        // of attribute
-        for (let i = items.length - 1; i >= 0; i--) {
-            counter[items[i][attr]] += 1;
-        }
-
-        return counter;
-    }
-
-    /**
-     * Calculating entropy of array of objects 
-     * by specific attribute.
-     *
-     * @param items - array of objects
-     *
-     * @param attr  - variable with name of attribute, 
-     *                which embedded in each object
-     */
-    function entropy(items, attr) {
-        // counting number of occurrences of each of values
-        // of attribute
-        let counter = countUniqueValues(items, attr);
-
-        let entropy = 0;
-        let p;
-        for (let i in counter) {
-            p = counter[i] / items.length;
-            entropy += -p * Math.log(p);
-        }
-
-        return entropy;
-    }
-
-    /**
-     * Splitting array of objects by value of specific attribute, 
-     * using specific predicate and pivot.
-     *
-     * Items which matched by predicate will be copied to 
-     * the new array called 'match', and the rest of the items 
-     * will be copied to array with name 'notMatch'
-     *
-     * @param items - array of objects
-     *
-     * @param attr  - variable with name of attribute,
-     *                which embedded in each object
-     *
-     * @param predicate - function(x, y) 
-     *                    which returns 'true' or 'false'
-     *
-     * @param pivot - used as the second argument when 
-     *                calling predicate function:
-     *                e.g. predicate(item[attr], pivot)
-     */
-    function split(items, attr, predicate, pivot) {
-        let match = [];
-        let notMatch = [];
-
-        let item,
-            attrValue;
-
-        for (let i = items.length - 1; i >= 0; i--) {
-            item = items[i];
-            attrValue = item[attr];
-
-            if (predicate(attrValue, pivot)) {
-                match.push(item);
-            } else {
-                notMatch.push(item);
-            }
-        };
-
-        return {
-            match: match,
-            notMatch: notMatch
-        };
-    }
-
-    /**
-     * Finding value of specific attribute which is most frequent
-     * in given array of objects.
-     *
-     * @param items - array of objects
-     *
-     * @param attr  - variable with name of attribute, 
-     *                which embedded in each object
-     */
-    function mostFrequentValue(items, attr) {
-        // counting number of occurrences of each of values
-        // of attribute
-        let counter = countUniqueValues(items, attr);
-
-        let mostFrequentCount = 0;
-        let mostFrequentValue;
-
-        for (let value in counter) {
-            if (counter[value] > mostFrequentCount) {
-                mostFrequentCount = counter[value];
-                mostFrequentValue = value;
-            }
-        };
-
-        return mostFrequentValue;
-    }
-
-    let predicates = {
-        '==': function (a, b) { return a == b },
-        '>=': function (a, b) { return a >= b }
-    };
-
-    /**
-     * Function for building decision tree
-     */
-    function buildDecisionTree(builder) {
-
-        let trainingSet = builder.trainingSet;
-        let minItemsCount = builder.minItemsCount;
-        let categoryAttr = builder.categoryAttr;
-        let entropyThrehold = builder.entropyThrehold;
-        let maxTreeDepth = builder.maxTreeDepth;
-        let ignoredAttributes = builder.ignoredAttributes;
-
-        if ((maxTreeDepth == 0) || (trainingSet.length <= minItemsCount)) {
-            // restriction by maximal depth of tree
-            // or size of training set is to small
-            // so we have to terminate process of building tree
-            return {
-                category: mostFrequentValue(trainingSet, categoryAttr)
-            };
-        }
-
-        let initialEntropy = entropy(trainingSet, categoryAttr);
-
-        if (initialEntropy <= entropyThrehold) {
-            // entropy of training set too small
-            // (it means that training set is almost homogeneous),
-            // so we have to terminate process of building tree
-            return {
-                category: mostFrequentValue(trainingSet, categoryAttr)
-            };
-        }
-
-        // used as hash-set for avoiding the checking of split by rules
-        // with the same 'attribute-predicate-pivot' more than once
-        let alreadyChecked = {};
-
-        // this variable expected to contain rule, which splits training set
-        // into subsets with smaller values of entropy (produces informational gain)
-        let bestSplit = { gain: 0 };
-
-        for (let i = trainingSet.length - 1; i >= 0; i--) {
-            let item = trainingSet[i];
-
-            // iterating over all attributes of item
-            for (let attr in item) {
-                if ((attr == categoryAttr) || ignoredAttributes[attr]) {
-                    continue;
-                }
-
-                // let the value of current attribute be the pivot
-                let pivot = item[attr];
-
-                // pick the predicate
-                // depending on the type of the attribute value
-                let predicateName;
-                if (typeof pivot == 'number') {
-                    predicateName = '>=';
-                } else {
-                    // there is no sense to compare non-numeric attributes
-                    // so we will check only equality of such attributes
-                    predicateName = '==';
-                }
-
-                let attrPredPivot = attr + predicateName + pivot;
-                if (alreadyChecked[attrPredPivot]) {
-                    // skip such pairs of 'attribute-predicate-pivot',
-                    // which been already checked
-                    continue;
-                }
-                alreadyChecked[attrPredPivot] = true;
-
-                let predicate = predicates[predicateName];
-
-                // splitting training set by given 'attribute-predicate-value'
-                let currSplit = split(trainingSet, attr, predicate, pivot);
-
-                // calculating entropy of subsets
-                let matchEntropy = entropy(currSplit.match, categoryAttr);
-                let notMatchEntropy = entropy(currSplit.notMatch, categoryAttr);
-
-                // calculating informational gain
-                let newEntropy = 0;
-                newEntropy += matchEntropy * currSplit.match.length;
-                newEntropy += notMatchEntropy * currSplit.notMatch.length;
-                newEntropy /= trainingSet.length;
-                let currGain = initialEntropy - newEntropy;
-
-                if (currGain > bestSplit.gain) {
-                    // remember pairs 'attribute-predicate-value'
-                    // which provides informational gain
-                    bestSplit = currSplit;
-                    bestSplit.predicateName = predicateName;
-                    bestSplit.predicate = predicate;
-                    bestSplit.attribute = attr;
-                    bestSplit.pivot = pivot;
-                    bestSplit.gain = currGain;
-                }
-            }
-        }
-
-        if (!bestSplit.gain) {
-            // can't find optimal split
-            return { category: mostFrequentValue(trainingSet, categoryAttr) };
-        }
-
-        // building subtrees
-
-        builder.maxTreeDepth = maxTreeDepth - 1;
-
-        builder.trainingSet = bestSplit.match;
-        let matchSubTree = buildDecisionTree(builder);
-
-        builder.trainingSet = bestSplit.notMatch;
-        let notMatchSubTree = buildDecisionTree(builder);
-
-        return {
-            attribute: bestSplit.attribute,
-            predicate: bestSplit.predicate,
-            predicateName: bestSplit.predicateName,
-            pivot: bestSplit.pivot,
-            match: matchSubTree,
-            notMatch: notMatchSubTree,
-            matchedCount: bestSplit.match.length,
-            notMatchedCount: bestSplit.notMatch.length
-        };
-    }
-
-    let exports = {};
-    exports.DecisionTree = DecisionTree;
-    return exports;
-})();
+    });
+    return correct / total;
+}
