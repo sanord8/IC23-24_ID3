@@ -97,7 +97,15 @@ Contiene los estilos de la página web (como por ejemplo colores  y reglas de di
 
 ## Ejemplos
 ### Demo 1 - Jugar dependiendo de tiempo
+#### Modelo
 ![Demo 1](../images/demo.png)
 
+#### Predicción
+![Prediction 1](../images/prediction1.png)
+
 ### Demo 2 - Sexo dependiendo de atributos físicos
+#### Modelo
 ![Demo 2](../images/demo2.png)
+
+#### Predicción
+![Prediction 2](../images/prediction2.png)

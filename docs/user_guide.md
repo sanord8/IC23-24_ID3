@@ -20,3 +20,9 @@ E.j. [Fichero datos](./demo-data.txt)
 ### Ejecución
 
 Una vez seleccionados ambos ficheros y ejecutado el programa a través del botón provisto (ambos ficheros son obligatorios) se mostrará una representación visual mediante un grafo, con la predicción realizada.
+
+### Predicción
+
+![Prediction](../images/prediction.png)
+
+La sección de predicción se genera automáticamente basada en los ficheros proporcionados y permite categorizar un caso usando las reglas generadas. El resultado se muestra debajo.
