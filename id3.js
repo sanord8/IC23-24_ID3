@@ -97,7 +97,6 @@ let randomTag = function () {
 }
 
 //Display logic
-
 let drawGraph = function (id3Model, divId) {
     let g = new Array();
     g = addEdges(id3Model, g).reverse();
@@ -136,30 +135,8 @@ let addEdges = function (node, g) {
     return g;
 }
 
-
-let renderSamples = function (samples, $el, model, target, features) {
-    _.each(samples, function (s) {
-        let features_fordataample = _.map(features, function (x) { return s[x] });
-        $el.append("<tr><td>" + features_fordataample.join('</td><td>') + "</td><td><b>" + predict(model, s) + "</b></td><td>actual: " + s[target] + "</td></tr>");
-    })
-}
-
 let renderTrainingData = function (_training, $el, target, features) {
     _training.each(function (s) {
         $el.append("<tr><td>" + _.map(features, function (x) { return s[x] }).join('</td><td>') + "</td><td>" + s[target] + "</td></tr>");
     })
-}
-
-let calcError = function (samples, model, target) {
-    let total = 0;
-    let correct = 0;
-    _.each(samples, function (s) {
-        total++;
-        let pred = predict(model, s);
-        let actual = s[target];
-        if (pred == actual) {
-            correct++;
-        }
-    });
-    return correct / total;
 }

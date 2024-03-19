@@ -30,10 +30,10 @@
     </nav>
 
     <div class="container-fluid ps-1 mt-2">
-        <div class="row row-cols-1 row-cols-md-2 mx-2">
+        <div class="row row-cols-1 row-cols-md-2 mx-2 mt-4">
             <!-- Opciones -->
-            <div class="col col-md-4 col-lg-3">                
-                <form id="startSimulationForm" class="row">
+            <div class="col col-md-4 col-lg-3">
+                <form id="startSimulationForm">
                     <div class="row g-3">
                         <div class="ps-0 mt-0">
                             <label for="attributeFile" class="form-label">Attribute file:</label>
@@ -43,18 +43,74 @@
                             <label for="valuesFile" class="form-label">Values file:</label>
                             <input class="form-control" type="file" id="valuesFile" accept=".csv, .txt" required>
                         </div>
+                        <!-- Start simulation -->
+                        <button type="submit" class="btn btn-primary">Start</button>
+                    </div>
+                </form>
+                <form id="predictionForm" class="pt-3">
+                    <div class="row mt-3">
+                        <div class="col">Tiempo Exterior:</div>
+                        <div class="col">
+                            <select class="form-select" attribute="TiempoExterior">
+                                <option value="soleado">soleado</opt1ion>
+                                <option value="nublado">nublado</option>
+                                <option value="lluvioso">lluvioso</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <!-- Start simulation -->
-                    <button type="submit" class="btn btn-primary">Start</button>
+                    <div class="row mt-3">
+                        <div class="col">Temperatura:</div>
+                        <div class="col">
+                            <select class="form-select" attribute="Temperatura">
+                                <option value="caluroso">caluroso</option>
+                                <option value="templado">templado</option>
+                                <option value="frio">frio</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col">Humedad:</div>
+                        <div class="col">
+                            <select class="form-select" attribute="Humedad">
+                                <option value="alta">alta</option>
+                                <option value="normal">normal</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col">Viento:</div>
+                        <div class="col">
+                            <select class="form-select" attribute="Viento">
+                                <option value="falso">falso</option>
+                                <option value="verdad">verdad</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Start prediction -->
+                    <button type="submit" class="btn btn-primary w-100 mt-3">Predict</button>
                 </form>
-                <span id="message"></span>
+                
+                <!-- Samples -->
+                <div id="samples" class="text-center mt-3 fs-4 fw-bold">
+
+                </div>
             </div>
             <!-- Tablero -->
             <div class="col col-md-8 col-lg-9">
                 <div id="displayTree" class="tree mx-auto ps-3 pb-2">
                     <div id='canvas'></div>
                 </div>
+            </div>
+
+
+        </div>
+        <div class="row">
+            <div class="col-8 align-self-end" id="dataDisplay">
+                
             </div>
         </div>
     </div>
